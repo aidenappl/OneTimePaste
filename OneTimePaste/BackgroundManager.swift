@@ -12,7 +12,7 @@ class BackgroundAppManager: NSObject, ObservableObject {
     @Published var isMonitoring = false
     private var lastOTPCount = 0
     private var contextMenu: NSMenu?
-    private var mainWindow: NSWindow?
+
 
     override init() {
         super.init()
@@ -140,11 +140,6 @@ class BackgroundAppManager: NSObject, ObservableObject {
         }
     }
 
-    func hideToMenuBar() {
-        mainWindow?.orderOut(nil)
-        NSApp.setActivationPolicy(.accessory)
-    }
-
     private func checkForNewOTPs() async {
         do {
             let foundOTPs = try await extractOTPs()
@@ -174,9 +169,6 @@ class BackgroundAppManager: NSObject, ObservableObject {
 
 extension BackgroundAppManager: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        if let window = notification.object as? NSWindow, window == mainWindow {
-            mainWindow = nil
-            NSApp.setActivationPolicy(.accessory)
-        }
+       
     }
 }
