@@ -4,8 +4,8 @@ import SQLite3
 import Foundation
 import UserNotifications
 
-class SafeNotificationManager: ObservableObject {
-    static let shared = SafeNotificationManager()
+class NotificationManager: ObservableObject {
+    static let shared = NotificationManager()
     
     func showOTPAlert(code: String) {
         let content = UNMutableNotificationContent()

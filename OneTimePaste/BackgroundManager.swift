@@ -85,10 +85,6 @@ class BackgroundAppManager: NSObject, ObservableObject {
         updateContextMenuItems()
     }
 
-    @objc private func testNotification() {
-        SafeNotificationManager.shared.showOTPAlert(code: "123456")
-    }
-
     @objc private func quitApp() {
         NSApp.terminate(nil)
     }
@@ -161,7 +157,7 @@ class BackgroundAppManager: NSObject, ObservableObject {
                         pasteboard.clearContents()
                         pasteboard.setString(newOTP.code, forType: .string)
 
-                        SafeNotificationManager.shared.showOTPAlert(code: newOTP.code)
+                        NotificationManager.shared.showOTPAlert(code: newOTP.code)
                         NSSound.beep()
 
                         print("Background: Auto-copied new OTP: \(newOTP.code)")
