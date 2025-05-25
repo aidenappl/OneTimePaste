@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import ServiceManagement
 
 class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
@@ -28,9 +29,9 @@ class SettingsManager: ObservableObject {
         }
     }
     
-    @Published var startOnBoot: Bool {
+    @Published var launchAtStartup: Bool {
         didSet {
-            UserDefaults.standard.set(startOnBoot, forKey: "startOnBoot")
+            UserDefaults.standard.set(launchAtStartup, forKey: "launchAtStartup")
         }
     }
     
@@ -57,11 +58,70 @@ class SettingsManager: ObservableObject {
         self.showNotifications = UserDefaults.standard.object(forKey: "showNotifications") as? Bool ?? true
         self.playSound = UserDefaults.standard.object(forKey: "playSound") as? Bool ?? true
         self.autoCopyToClipboard = UserDefaults.standard.object(forKey: "autoCopyToClipboard") as? Bool ?? true
-        self.startOnBoot = UserDefaults.standard.object(forKey: "startOnBoot") as? Bool ?? true
+        self.launchAtStartup = UserDefaults.standard.object(forKey: "launchAtStartup") as? Bool ?? true
         self.minOTPLength = UserDefaults.standard.object(forKey: "minOTPLength") as? Int ?? 3
         self.maxOTPLength = UserDefaults.standard.object(forKey: "maxOTPLength") as? Int ?? 9
         self.showPopup = UserDefaults.standard.object(forKey: "showPopup") as? Bool ?? true
     }
+    
+    private func updateLaunchAtStartup() {
+            if #available(macOS 13.0, *) {
+                do {
+                    if launchAtStartup {
+                        if SMAppService.mainApp.status == .notRegistered {
+                            try SMAppService.mainApp.register()
+                            print("Registered app for launch at startup")
+                        }
+                    } else {
+                        if SMAppService.mainApp.status == .enabled {
+                            try SMAppService.mainApp.unregister()
+                            print("Unregistered app from launch at startup")
+                        }
+                    }
+                } catch {
+                    print("Failed to update launch at startup: \(error)")
+                }
+            } else {
+                // Fallback for older macOS versions
+                updateLaunchAtStartupLegacy()
+            }
+        }
+        
+        private func updateLaunchAtStartupLegacy() {
+            let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.aidenappleby.OneTimePaste"
+            
+            if launchAtStartup {
+                // Add to login items
+                let script = """
+                    tell application "System Events"
+                        make login item at end with properties {path:"\(Bundle.main.bundlePath)", hidden:false}
+                    end tell
+                    """
+                
+                var error: NSDictionary?
+                if let scriptObject = NSAppleScript(source: script) {
+                    scriptObject.executeAndReturnError(&error)
+                    if let error = error {
+                        print("Error adding login item: \(error)")
+                    }
+                }
+            } else {
+                // Remove from login items
+                let script = """
+                    tell application "System Events"
+                        delete login item "OneTimePaste"
+                    end tell
+                    """
+                
+                var error: NSDictionary?
+                if let scriptObject = NSAppleScript(source: script) {
+                    scriptObject.executeAndReturnError(&error)
+                    if let error = error {
+                        print("Error removing login item: \(error)")
+                    }
+                }
+            }
+        }
 }
 
 struct SettingsView: View {
@@ -133,7 +193,7 @@ struct SettingsView: View {
                 
                 Toggle("Show popup window when OTP found", isOn: $settings.showPopup)
                 
-                Toggle("Start OneTimePaste on startup", isOn: $settings.startOnBoot)
+                Toggle("Start OneTimePaste on startup", isOn: $settings.launchAtStartup)
             }
             
             Divider()

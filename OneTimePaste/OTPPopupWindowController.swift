@@ -24,7 +24,7 @@ class OTPPopupWindowController {
         
         let windowWidth: CGFloat = 280
         let windowHeight: CGFloat = 120
-        let margin: CGFloat = 20
+        let margin: CGFloat = 40
         
         let windowFrame = NSRect(
             x: screenFrame.minX + margin,
