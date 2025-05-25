@@ -1,17 +1,14 @@
-//
-//  OneTimePasteApp.swift
-//  OneTimePaste
-//
-//  Created by Aiden Appleby on 5/19/25.
-//
-
 import SwiftUI
+import SQLite3
+import Foundation
 
 @main
 struct OneTimePasteApp: App {
+    @StateObject private var backgroundManager = BackgroundAppManager.shared
+    
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            EmptyView()
         }
     }
 }
