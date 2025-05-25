@@ -4,15 +4,16 @@ import SQLite3
 import SwiftUI
 import UserNotifications
 
-class BackgroundAppManager: NSObject, ObservableObject {
-    static let shared = BackgroundAppManager()
+class BackgroundManager: NSObject, ObservableObject {
+    static let shared = BackgroundManager()
 
     private var statusItem: NSStatusItem?
     private var monitoringTimer: Timer?
     @Published var isMonitoring = false
     private var lastOTPCount = 0
     private var contextMenu: NSMenu?
-
+    private let settings = SettingsManager.shared
+    private let popupController = OTPPopupWindowController()
 
     override init() {
         super.init()
@@ -67,6 +68,20 @@ class BackgroundAppManager: NSObject, ObservableObject {
         let statusMenuItem = NSMenuItem(title: status, action: nil, keyEquivalent: "")
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
+        
+        if isMonitoring {
+            let intervalText = "Checking every \(settings.monitoringInterval == 1.0 ? "1 second" : "\(settings.monitoringInterval) seconds")"
+            let intervalMenuItem = NSMenuItem(title: intervalText, action: nil, keyEquivalent: "")
+            intervalMenuItem.isEnabled = false
+            menu.addItem(intervalMenuItem)
+        }
+
+        menu.addItem(NSMenuItem.separator())
+        
+        let settingsItem = NSMenuItem(
+            title: "Settings...", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -83,6 +98,10 @@ class BackgroundAppManager: NSObject, ObservableObject {
             startMonitoring()
         }
         updateContextMenuItems()
+    }
+    
+    @objc private func showSettings() {
+        SettingsWindowController.shared.showSettings()
     }
 
     @objc private func quitApp() {
@@ -104,7 +123,8 @@ class BackgroundAppManager: NSObject, ObservableObject {
             }
         }
 
-        monitoringTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) {
+        // Use configurable monitoring interval
+        monitoringTimer = Timer.scheduledTimer(withTimeInterval: settings.monitoringInterval, repeats: true) {
             [weak self] timer in
             guard let self = self, self.isMonitoring else {
                 timer.invalidate()
@@ -116,7 +136,8 @@ class BackgroundAppManager: NSObject, ObservableObject {
             }
         }
 
-        print("Background monitoring started")
+        print("Background monitoring started with \(settings.monitoringInterval)s interval")
+        updateContextMenuItems() // Update to show the new interval
     }
 
     func stopMonitoring() {
@@ -124,7 +145,16 @@ class BackgroundAppManager: NSObject, ObservableObject {
         monitoringTimer?.invalidate()
         monitoringTimer = nil
         updateMenuBarIcon()
+        updateContextMenuItems()
         print("Background monitoring stopped")
+    }
+    
+    // Restart monitoring with new settings
+    func restartMonitoringIfActive() {
+        if isMonitoring {
+            stopMonitoring()
+            startMonitoring()
+        }
     }
 
     private func updateMenuBarIcon() {
@@ -148,14 +178,33 @@ class BackgroundAppManager: NSObject, ObservableObject {
                     let newOTPs = Array(foundOTPs.prefix(foundOTPs.count - self.lastOTPCount))
 
                     for newOTP in newOTPs {
-                        let pasteboard = NSPasteboard.general
-                        pasteboard.clearContents()
-                        pasteboard.setString(newOTP.code, forType: .string)
-
-                        NotificationManager.shared.showOTPAlert(code: newOTP.code)
-                        NSSound.beep()
-
-                        print("Background: Auto-copied new OTP: \(newOTP.code)")
+                        // Auto-copy if enabled
+                        if self.settings.autoCopyToClipboard {
+                            let pasteboard = NSPasteboard.general
+                            pasteboard.clearContents()
+                            pasteboard.setString(newOTP.code, forType: .string)
+                            print("Background: Auto-copied new OTP: \(newOTP.code)")
+                        }
+                        
+                        // Show popup if enabled
+                        if self.settings.showPopup {
+                            self.popupController.showOTPPopup(
+                                code: newOTP.code,
+                                sender: newOTP.sender
+                            )
+                        }
+                        
+                        // Show notification if enabled
+                        if self.settings.showNotifications {
+                            NotificationManager.shared.showOTPAlert(
+                                code: newOTP.code
+                            )
+                        }
+                        
+                        // Play sound if enabled (even without notification)
+                        if self.settings.playSound {
+                            NSSound.beep()
+                        }
                     }
                 }
 
@@ -167,7 +216,7 @@ class BackgroundAppManager: NSObject, ObservableObject {
     }
 }
 
-extension BackgroundAppManager: NSWindowDelegate {
+extension BackgroundManager: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
        
     }

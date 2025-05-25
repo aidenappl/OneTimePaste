@@ -7,11 +7,16 @@ import UserNotifications
 class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     
-    func showOTPAlert(code: String) {
+    func showOTPAlert(code: String, playSound: Bool = true) {
         let content = UNMutableNotificationContent()
         content.title = "🔑 OTP Copied to Clipboard"
         content.body = "One-Time Passcode: \(code)"
-        content.sound = .default
+        
+        if playSound {
+            content.sound = .default
+        } else {
+            content.sound = nil
+        }
 
         let request = UNNotificationRequest(
             identifier: "otp-\(UUID().uuidString)",

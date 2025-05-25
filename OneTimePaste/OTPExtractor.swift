@@ -177,9 +177,14 @@ func parseAttributedBody(_ data: Data) -> String? {
 
 func findOTPInText(_ text: String) -> String? {
     let lowercaseText = text.lowercased()
+    let settings = SettingsManager.shared
     
-    // Look for 3-9 digit numbers
-    let regex = try! NSRegularExpression(pattern: "\\b\\d{3,9}\\b")
+    // Use configurable OTP length range
+    let minLength = settings.minOTPLength
+    let maxLength = settings.maxOTPLength
+    
+    // Look for numbers within the configured range
+    let regex = try! NSRegularExpression(pattern: "\\b\\d{\(minLength),\(maxLength)}\\b")
     let range = NSRange(location: 0, length: text.utf16.count)
     let matches = regex.matches(in: text, options: [], range: range)
     
@@ -188,6 +193,7 @@ func findOTPInText(_ text: String) -> String? {
         
         var score = 0
         
+        // Preferred length range (4-6 digits typically)
         if code.count >= 4 && code.count <= 6 {
             score += 3
         } else {
@@ -195,7 +201,7 @@ func findOTPInText(_ text: String) -> String? {
         }
         
         // Context keywords
-        let otpKeywords = ["code", "verify", "verification", "otp", "login", "security", "confirm", "access"]
+        let otpKeywords = ["code", "verify", "verification", "otp", "login", "security", "confirm", "access", "authentication", "passcode"]
         for keyword in otpKeywords {
             if lowercaseText.contains(keyword) {
                 score += 2
@@ -204,7 +210,7 @@ func findOTPInText(_ text: String) -> String? {
         }
         
         // Avoid obvious non-OTPs
-        let badKeywords = ["price", "total", "phone", "year", "$"]
+        let badKeywords = ["price", "total", "phone", "year", "$", "address", "zip", "postal"]
         for keyword in badKeywords {
             if lowercaseText.contains(keyword) {
                 score -= 2
