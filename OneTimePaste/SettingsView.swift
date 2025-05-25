@@ -32,6 +32,7 @@ class SettingsManager: ObservableObject {
     @Published var launchAtStartup: Bool {
         didSet {
             UserDefaults.standard.set(launchAtStartup, forKey: "launchAtStartup")
+            updateLaunchAtStartup()
         }
     }
     
@@ -82,6 +83,7 @@ class SettingsManager: ObservableObject {
                     print("Failed to update launch at startup: \(error)")
                 }
             } else {
+                print("falling back on legacy startup mode")
                 // Fallback for older macOS versions
                 updateLaunchAtStartupLegacy()
             }
