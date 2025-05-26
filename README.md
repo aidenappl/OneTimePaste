@@ -21,6 +21,14 @@ A lightweight macOS menu bar application that automatically detects one-time pas
 
 ## Installation
 
+### Using Release
+
+Download the release zip file listed in the github repo.
+
+| Build             | Link                                                                |
+| ----------------- | ------------------------------------------------------------------- |
+| **v.0.1.0-alpha** | https://github.com/aidenappl/OneTimePaste/releases/tag/v0.1.0-alpha |
+
 ### Using Source
 
 ```bash
